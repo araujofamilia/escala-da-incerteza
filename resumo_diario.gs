@@ -2,8 +2,8 @@
  * A Escala da Incerteza: resumo diário das fichas por e-mail.
  *
  * Fica ligado à planilha "A Escala da Incerteza · fichas dos alunos
- * (Fundamentos 2026/2)" (Extensões > Apps Script). Todo dia, entre 7h e 8h,
- * manda numa só mensagem o que entrou desde o último resumo, agrupado por
+ * (Fundamentos 2026/2)" (Extensões > Apps Script). Uma vez por dia, de madrugada
+ * (entre 3h e 4h), manda numa só mensagem o que entrou desde o último resumo, agrupado por
  * aluno. Dia sem envio novo não gera e-mail. A planilha continua sendo o
  * backup completo, na conta araujofamilia@gmail.com.
  *
@@ -22,10 +22,10 @@ function instalar() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === "resumoDiario") ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger("resumoDiario").timeBased().everyDays(1).atHour(7).create();
+  ScriptApp.newTrigger("resumoDiario").timeBased().everyDays(1).atHour(3).create();
   var p = PropertiesService.getScriptProperties();
   if (!p.getProperty("ultimaLinha")) p.setProperty("ultimaLinha", String(Math.max(1, abaRespostas_().getLastRow())));
-  Logger.log("Resumo diário ligado para " + DESTINOS + " (todo dia entre 7h e 8h).");
+  Logger.log("Resumo diário ligado para " + DESTINOS + " (todo dia entre 3h e 4h da madrugada).");
 }
 
 function resumoDiario() {
@@ -98,7 +98,7 @@ function resumoDiario() {
 function testeEnvio() {
   MailApp.sendEmail(DESTINOS, "A Escala da Incerteza · teste do resumo diário",
     "Teste do resumo diário da atividade A Escala da Incerteza (Fundamentos de Jornalismo).\n\n" +
-    "Todo dia, entre 7h e 8h (horário de Brasília), chega aqui um e-mail com as fichas e etapas novas dos alunos, " +
+    "Uma vez por dia, de madrugada (entre 3h e 4h, horário de Brasília), chega aqui um e-mail com as fichas e etapas novas dos alunos, " +
     "agrupadas por aluno. Dia sem envio novo não gera e-mail.\n\n" +
     "A planilha com tudo fica na conta araujofamilia@gmail.com: " + SpreadsheetApp.getActive().getUrl());
 }

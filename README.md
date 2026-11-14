@@ -24,7 +24,7 @@ Caso: o apagão aéreo nos Estados Unidos de 13/11/2026 nas edições de 14/11 d
 
 O envio automático está ligado. Cada etapa escrita (placar, veredicto, depois do fechamento) e a ficha completa vão, no momento da entrega, para o Formulário Google "A Escala da Incerteza · fichas (Fundamentos 2026/2)", na conta do professor. O aluno não precisa mandar nada. Os envios ficam numa fila salva no navegador: se a conexão falhar, a atividade tenta de novo ao abrir a página, ao voltar a conexão e a cada minuto, e a tela "Minha ficha" mostra se há envio pendente. O botão de baixar cópia continua como segurança.
 
-O formulário grava tudo na planilha "A Escala da Incerteza · fichas dos alunos (Fundamentos 2026/2)", na conta araujofamilia@gmail.com, que é o backup completo. O script `resumo_diario.gs`, ligado a essa planilha (Extensões > Apps Script), manda todo dia, entre 7h e 8h, um e-mail com os envios novos agrupados por aluno para os endereços da PUC e da Prefeitura do professor. Dia sem envio novo não gera e-mail.
+O formulário grava tudo na planilha "A Escala da Incerteza · fichas dos alunos (Fundamentos 2026/2)", na conta araujofamilia@gmail.com, que é o backup completo. O script `resumo_diario.gs`, ligado a essa planilha (Extensões > Apps Script), manda uma vez por dia, de madrugada (entre 3h e 4h), um e-mail com os envios novos agrupados por aluno para os endereços da PUC e da Prefeitura do professor. Dia sem envio novo não gera e-mail.
 
 Para trocar de formulário, rode `criar_formulario.gs` em script.google.com e cole no `config.js` o bloco que ele imprime. Se o bloco `envio` ficar com `acao` vazio, a atividade volta a usar só o arquivo baixado e o e-mail.
 
