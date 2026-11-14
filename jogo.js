@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  var VERSAO = "2026-11-14a";
+  var VERSAO = "2026-11-14b";
   var PREF = "escala-incerteza:v1:";
   var ULTIMO = "escala-incerteza:ultimo";
 
@@ -43,8 +43,8 @@
   function topo() { window.scrollTo(0, 0); }
 
   /* ---------------- estado ---------------- */
-  function novo(email, nome, ra) {
-    return { v: 1, email: email, nome: nome, ra: ra, inicio: agora(), xp: 0, acertos: 0, erros: 0, seq: 0, melhorSeq: 0,
+  function novo(email, nome) {
+    return { v: 1, email: email, nome: nome, inicio: agora(), xp: 0, acertos: 0, erros: 0, seq: 0, melhorSeq: 0,
       mesas: {}, placar: null, veredicto: null, depois: null, rascunhos: {}, rodada: null, entregue: false };
   }
   function salvar() { try { localStorage.setItem(PREF + S.email, JSON.stringify(S)); localStorage.setItem(ULTIMO, S.email); } catch (e) {} }
@@ -73,7 +73,7 @@
       '<span class="chip" title="Etapas feitas">Etapas ' + feitas() + '/6</span>' +
       '<span class="esp"></span>' +
       '<button data-ir="caderno">Caderno de trechos</button>' +
-      '<button data-ir="ficha">Minha ficha' + (S.entregue ? ' ✓' : '') + '</button>' +
+      '<button data-ir="ficha">Minha ficha' + (pendentes().length ? ' (envio pendente)' : (S.entregue ? ' ✓ salva' : '')) + '</button>' +
       '<button data-ir="redacao">Redação</button></div>';
   }
   barra.addEventListener("click", function (e) {
@@ -100,10 +100,9 @@
       '<li><b>Três mesas de treino</b> (o fato e os números, a fonte e o título, fato, versão ou interpretação): você responde e recebe a explicação na hora.</li>' +
       '<li><b>Três etapas escritas</b>, como na ficha de papel: o placar da incerteza de dois jornais, o veredicto e, depois do fechamento, a pergunta final.</li>' +
       '<li><b>O caderno de trechos</b> fica no alto da tela o tempo todo: são os trechos reais dos cinco jornais, com a página.</li>' +
-      '<li><b>Seu progresso</b> fica salvo neste navegador. No fim, ' + (CONFIG.envio.acao ? 'a ficha vai direto para o professor, e você ainda pode baixar uma cópia.' : 'baixe a ficha e mande ao professor do jeito que ele indicar no Canvas.') + '</li></ul>' +
+      '<li><b>Seu progresso</b> fica salvo neste navegador. No fim, ' + (CONFIG.envio.acao ? 'cada etapa escrita é salva automaticamente no registro do professor assim que você entrega, e a ficha completa também. Você não precisa mandar nada; se quiser, baixa uma cópia.' : 'baixe a ficha e mande ao professor do jeito que ele indicar no Canvas.') + '</li></ul>' +
       '</div><div class="c-entrada"><div class="box"><div class="tipo" style="--c:var(--vermelho)">Crachá de entrada</div>' +
       '<label class="l" for="nome">Nome completo</label><input class="campo" id="nome" autocomplete="name" value="' + esc(prev ? prev.nome : "") + '">' +
-      '<label class="l" for="ra">RA</label><input class="campo" id="ra" inputmode="numeric" value="' + esc(prev ? prev.ra : "") + '">' +
       '<label class="l" for="email">E-mail</label><input class="campo" id="email" type="email" autocomplete="email" placeholder="seu.nome@puccampinas.edu.br" value="' + esc(ult) + '">' +
       '<div class="erro" id="erro"></div>' +
       '<div class="acoes"><button class="btn verm" id="entrar">Entrar no plantão</button></div>' +
@@ -117,12 +116,11 @@
     }
     inp.addEventListener("input", mostraRetorno); mostraRetorno();
     function entrar() {
-      var nome = document.getElementById("nome").value.trim(), ra = document.getElementById("ra").value.trim(), e = inp.value.trim().toLowerCase();
+      var nome = document.getElementById("nome").value.trim(), e = inp.value.trim().toLowerCase();
       var er = document.getElementById("erro");
       if (palavras(nome) < 2) { er.textContent = "Digite seu nome completo."; return; }
-      if (!/^\d{5,}$/.test(ra.replace(/\D/g, ""))) { er.textContent = "Digite seu RA (só números)."; return; }
       if (!emailValido(e)) { er.textContent = "Digite um e-mail válido."; return; }
-      S = carregar(e) || novo(e, nome, ra); S.nome = nome; S.ra = ra.replace(/\D/g, ""); salvar(); telaRedacao();
+      S = carregar(e) || novo(e, nome); S.nome = nome; delete S.ra; salvar(); telaRedacao(); processaFila();
     }
     document.getElementById("entrar").onclick = entrar;
     inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") entrar(); });
@@ -137,7 +135,7 @@
   function telaRedacao() {
     desenhaBarra(); topo();
     var c = feitas();
-    var html = '<div class="dateline" style="margin-top:18px"><span>' + esc(S.nome) + ' · RA ' + esc(S.ra) + '</span><span>' + c + ' de 6 etapas</span><span>' + S.acertos + ' acertos · melhor sequência ' + S.melhorSeq + '</span></div>';
+    var html = '<div class="dateline" style="margin-top:18px"><span>' + esc(S.nome) + '</span><span>' + c + ' de 6 etapas</span><span>' + S.acertos + ' acertos · melhor sequência ' + S.melhorSeq + '</span></div>';
     if (S.rodada) html += '<div class="aviso" style="border-color:var(--ouro);background:#fff9ec;margin-bottom:16px"><b style="color:var(--tinta)">Mesa em andamento:</b> ' + esc(porMesa[S.rodada.mesa].nome) + ', questão ' + (S.rodada.i + 1) + ' de ' + S.rodada.itens.length + '. <button class="btn" style="margin-left:8px;padding:6px 14px;font-size:14px" id="continuar">Continuar de onde parei</button></div>';
     html += '<div class="manchete" style="font-size:clamp(28px,4vw,40px)">A redação</div><div class="progresso"><i style="width:' + (c / 6 * 100) + '%"></i></div>' +
       '<div class="box" style="margin-top:16px">' + CASO.contexto.map(function (p) { return '<p style="margin:0 0 10px">' + esc(p) + '</p>'; }).join("") +
@@ -362,27 +360,65 @@
     telaTexto({ id: "veredicto", n: 5, titulo: "Veredicto", cor: "#1d1b18", q: VEREDICTO.q, min: VEREDICTO.min, guia: VEREDICTO.guia, xp: 40,
       antes: resumoPlacar(), depois: telaDepois });
   }
+  function enviaFichaCompleta() {
+    if (S.placar && S.veredicto && S.depois) { envia("ficha", "Ficha completa", textoFicha()); S.entregue = true; salvar(); }
+  }
   function telaDepois() {
     if (!S.veredicto) { telaVeredicto(); return; }
     var antes = '<div class="box" style="border-left:6px solid var(--vermelho);margin-bottom:16px"><p style="margin-top:0"><b>' + esc(DEPOIS.intro) + '</b></p><ul class="lista">' +
       DEPOIS.itens.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul><p class="mini" style="margin-bottom:0">' + esc(DEPOIS.fontes) + '</p></div>';
     telaTexto({ id: "depois", n: 6, titulo: DEPOIS.titulo, cor: "#c0392b", q: DEPOIS.q, min: DEPOIS.min, guia: DEPOIS.guia, xp: 30,
-      antes: antes, depois: telaFicha });
+      antes: antes, depois: function () { enviaFichaCompleta(); telaFicha(); } });
   }
 
   /* ---------------- envio e ficha ---------------- */
+  /* Cada etapa escrita entra numa fila salva no navegador e vai para o
+     registro do professor (Formulário Google). Se a conexão falhar, a fila
+     tenta de novo sozinha: ao abrir a página, ao voltar a conexão e a cada
+     minuto, até conseguir. */
   function envia(tipo, etapa, texto) {
-    var E = CONFIG.envio; if (!E || !E.acao) return;
-    try {
-      var c = E.campos, f = new URLSearchParams();
-      f.append(c.email, S.email); f.append(c.nome, S.nome); f.append(c.ra, S.ra); f.append(c.tipo, tipo); f.append(c.etapa, etapa); f.append(c.resposta, texto);
-      f.append(c.dados, JSON.stringify({ v: VERSAO, xp: S.xp, acertos: S.acertos, erros: S.erros, etapas: feitas(), data: agora() }));
-      fetch(E.acao, { method: "POST", mode: "no-cors", body: f }).catch(function () {});
-    } catch (e) {}
+    S.fila = S.fila || [];
+    S.fila.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tipo: tipo, etapa: etapa, texto: texto, data: agora(), ok: false, tent: 0,
+      dados: { v: VERSAO, xp: S.xp, acertos: S.acertos, erros: S.erros, etapas: feitas() } });
+    salvar(); processaFila();
+  }
+  var enviando = false;
+  function pendentes() { return (S && S.fila || []).filter(function (x) { return !x.ok; }); }
+  function processaFila(depois) {
+    var E = CONFIG.envio; if (!S || !E || !E.acao || enviando) { if (depois) depois(); return; }
+    var fila = pendentes(); if (!fila.length) { if (depois) depois(); return; }
+    enviando = true;
+    var c = E.campos, i = 0;
+    (function proximo() {
+      if (i >= fila.length) {
+        enviando = false; salvar(); desenhaBarra();
+        if (pendentes().some(function (x) { return !x.tent; })) { processaFila(depois); return; }
+        if (depois) depois(); return;
+      }
+      var it = fila[i++], f = new URLSearchParams();
+      f.append(c.email, S.email); f.append(c.nome, S.nome); f.append(c.tipo, it.tipo); f.append(c.resposta, it.texto);
+      var d = {}; for (var k in it.dados) d[k] = it.dados[k]; d.etapa = it.etapa; d.entregue = it.data; d.tentativa = it.tent + 1; d.id = it.id;
+      f.append(c.dados, JSON.stringify(d));
+      it.tent++;
+      fetch(E.acao, { method: "POST", mode: "no-cors", body: f })
+        .then(function () { it.ok = true; it.enviado = agora(); salvar(); proximo(); })
+        .catch(function () { salvar(); proximo(); });
+    })();
+  }
+  window.addEventListener("online", function () { processaFila(); });
+  setInterval(function () { if (pendentes().length) processaFila(); }, 60000);
+  function statusEnvio() {
+    var f = S.fila || [];
+    if (!CONFIG.envio.acao) return { cls: "", txt: "" };
+    if (!f.length) return { cls: "", txt: "Nada entregue ainda." };
+    var p = pendentes().length;
+    if (p) return { cls: "pend", txt: p + " envio(s) pendente(s): sem conexão com o registro do professor. A atividade tenta de novo sozinha." };
+    var ult = f[f.length - 1];
+    return { cls: "ok", txt: "Salvo no registro do professor: " + f.length + " envio(s), o último em " + dataBR(ult.enviado || ult.data) + "." };
   }
   function textoFicha() {
     var l = ["A ESCALA DA INCERTEZA · ficha digital", "Fundamentos de Jornalismo · PUC-Campinas · Turma 0101 · 2026/2", "Caso: o apagão aéreo nos EUA nas edições de 14/11/2026",
-      "Nome: " + S.nome, "RA: " + S.ra, "E-mail: " + S.email, "Gerada em: " + dataBR(agora()), "",
+      "Nome: " + S.nome, "E-mail: " + S.email, "Gerada em: " + dataBR(agora()), "",
       "Treino (etapas 1 a 3): " + MESAS.map(function (m) { var e = S.mesas[m.id]; return m.nome + " " + (e ? e.melhor + "/" + m.itens.length : "não feita"); }).join(" · "),
       "XP: " + S.xp + " · acertos: " + S.acertos + " · erros: " + S.erros, "",
       "==== PLACAR DA INCERTEZA", S.placar ? textoPlacar() : "(não feito)", "",
@@ -396,27 +432,36 @@
     var html = '<div class="dateline" style="margin-top:18px"><span>Minha ficha</span><span>' + feitas() + ' de 6 etapas</span><span>' + esc(S.email) + '</span></div>' +
       '<div class="manchete" style="font-size:clamp(28px,4vw,40px)">' + (completa ? 'Sua ficha está pronta' : 'Sua ficha, até aqui') + '</div>';
     if (!completa) html += '<div class="aviso"><b>Ainda falta:</b> ' + ["placar", "veredicto", "depois"].filter(function (x) { return !feita(x); }).map(function (x) { return EXTRAS[x].nome; }).join(", ") + '. A ficha só se entrega completa.</div>';
-    else if (CONFIG.envio.acao) html += '<div class="aviso" style="border-color:var(--verde);background:#f1faf4"><b style="color:var(--verde)">Envio automático ligado.</b> Cada etapa escrita foi para o professor no momento em que você entregou. Os botões abaixo servem de cópia de segurança.</div>';
+    else if (CONFIG.envio.acao) {
+      var st = statusEnvio();
+      html += st.cls === "pend"
+        ? '<div class="aviso"><b>Envio pendente.</b> ' + esc(st.txt) + ' <button class="btn" style="margin-left:8px;padding:6px 14px;font-size:14px" id="reenviar">Tentar de novo agora</button></div>'
+        : '<div class="aviso" style="border-color:var(--verde);background:#f1faf4"><b style="color:var(--verde)">Ficha salva automaticamente.</b> ' + esc(st.txt) + ' Você não precisa mandar nada. O botão abaixo só baixa uma cópia para você.</div>';
+    }
     else html += '<div class="aviso"><b>Como entregar:</b> clique em "Baixar ficha" e mande o arquivo ao professor do jeito indicado no Canvas, ou por e-mail para <b>' + esc(CONFIG.emailProfessor) + '</b>.</div>';
-    html += '<div class="acoes"><button class="btn verm" id="baixar"' + (completa ? '' : ' disabled') + '>Baixar ficha</button><button class="btn" id="mail"' + (completa ? '' : ' disabled') + '>Abrir e-mail</button><button class="btn sec" id="copiar"' + (completa ? '' : ' disabled') + '>Copiar tudo</button></div>' +
+    var auto = !!CONFIG.envio.acao;
+    html += '<div class="acoes"><button class="btn' + (auto ? ' sec' : ' verm') + '" id="baixar"' + (completa ? '' : ' disabled') + '>' + (auto ? 'Baixar uma cópia' : 'Baixar ficha') + '</button>' +
+      (auto ? '' : '<button class="btn" id="mail"' + (completa ? '' : ' disabled') + '>Abrir e-mail</button>') +
+      '<button class="btn sec" id="copiar"' + (completa ? '' : ' disabled') + '>Copiar tudo</button></div>' +
       '<div class="resp"><div class="t">' + esc(textoFicha()) + '</div></div>' +
       '<div class="acoes"><button class="btn sec" id="volta">Voltar à redação</button></div>';
     app.innerHTML = html;
     document.getElementById("volta").onclick = telaRedacao;
+    var rb = document.getElementById("reenviar"); if (rb) rb.onclick = function () { rb.disabled = true; processaFila(function () { telaFicha(); }); };
     if (!completa) return;
     function marcaEntregue() { if (!S.entregue) { S.entregue = true; salvar(); desenhaBarra(); } }
     document.getElementById("baixar").onclick = function () {
       var blob = new Blob([textoFicha()], { type: "text/plain;charset=utf-8" });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-      a.download = "escala-da-incerteza-" + S.nome.split(/\s+/)[0].normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]/g, "") + "-" + S.ra + ".txt";
+      a.download = "escala-da-incerteza-" + S.nome.split(/\s+/)[0].normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]/g, "") + ".txt";
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-      marcaEntregue(); toast("Ficha baixada. Agora entregue o arquivo.");
+      marcaEntregue(); toast(auto ? "Cópia baixada. A ficha já está salva no registro do professor." : "Ficha baixada. Agora entregue o arquivo.");
     };
-    document.getElementById("mail").onclick = function () {
+    if (!auto) document.getElementById("mail").onclick = function () {
       var corpo = textoFicha();
-      if (corpo.length > 1700) corpo = "Professor, segue minha ficha da atividade A Escala da Incerteza em arquivo anexo (baixado na tela Minha ficha).\n\nNome: " + S.nome + "\nRA: " + S.ra;
+      if (corpo.length > 1700) corpo = "Professor, segue minha ficha da atividade A Escala da Incerteza em arquivo anexo (baixado na tela Minha ficha).\n\nNome: " + S.nome;
       marcaEntregue();
-      location.href = "mailto:" + CONFIG.emailProfessor + "?subject=" + encodeURIComponent("A Escala da Incerteza · ficha · " + S.nome + " · RA " + S.ra) + "&body=" + encodeURIComponent(corpo);
+      location.href = "mailto:" + CONFIG.emailProfessor + "?subject=" + encodeURIComponent("A Escala da Incerteza · ficha · " + S.nome) + "&body=" + encodeURIComponent(corpo);
     };
     document.getElementById("copiar").onclick = function () {
       var t = textoFicha();

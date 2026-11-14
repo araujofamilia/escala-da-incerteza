@@ -17,10 +17,10 @@ function criarFormulario() {
   form.setDescription("Recebe automaticamente as etapas escritas da atividade A Escala da Incerteza.");
   form.setCollectEmail(false);
 
-  var nomes = ["email", "nome", "ra", "tipo", "etapa", "resposta", "dados"];
+  var nomes = ["email", "nome", "tipo", "resposta", "dados"];
   var titulos = {
-    email: "E-mail do aluno", nome: "Nome", ra: "RA", tipo: "Tipo (placar, veredicto ou depois)",
-    etapa: "Etapa", resposta: "Resposta do aluno", dados: "Dados da atividade (pontos, data)"
+    email: "E-mail do aluno", nome: "Nome", tipo: "Tipo (placar, veredicto, depois ou ficha)",
+    resposta: "Resposta do aluno", dados: "Dados da atividade (etapa, pontos, data)"
   };
   var itens = {};
   nomes.forEach(function (n) {
